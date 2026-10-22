@@ -66,3 +66,5 @@ div.opt{cursor:default}
 @keyframes sway{50%{transform:rotate(12deg)}}@keyframes beat{50%{transform:scale(1.1)}}
 @media(max-width:600px){.logo{height:36px}.pill{font-size:12px;padding:6px 12px}.pod{height:230px}.opt{font-size:17px;min-height:72px}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}#petals,#fx{display:none}}
+
+.acts{display:flex;gap:8px;flex-wrap:wrap}.mini{padding:8px 14px;font-size:14px;box-shadow:0 3px 0 #f3b6cf}

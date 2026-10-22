@@ -7,7 +7,7 @@
 <script>
 const $=s=>document.querySelector(s),app=$('#app'),esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 let S={};try{S=JSON.parse(localStorage.fq||'{}')}catch{}
-let PRE=null,es,V,off=0,net=false,sel=null,selQ=-1,tab='join',err='',tk,fx='';
+let AUTH=sessionStorage.fqa||'',PRE=null,es,V,off=0,net=false,sel=null,selQ=-1,tab='join',err='',tk,fx='';
 const save=()=>localStorage.fq=JSON.stringify(S);
 const api=(p,b)=>fetch('/api/'+p,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(r=>r.json()).catch(()=>({error:'Sem conexão. Tente de novo.'}));
 const L='ABCD',logo='<img class=logo src="/img/logo-h.png" alt="Grupo Lifetec">',ICON=['🔍','🍎','🩺','💗'];
@@ -28,6 +28,7 @@ function connect(){
   es&&es.close();es=new EventSource('/api/events?c='+S.c+(S.host?'&h='+S.host:'&p='+S.pid));
   es.onopen=()=>{net=false;V&&render()};
   es.onmessage=e=>{const v=JSON.parse(e.data);
+    if(v.phase==='cancel'){const hh=!!S.host;es.close();S={name:S.name};save();V=null;tab=hh?'host':'join';err=hh?'Quiz cancelado.':'O anfitrião cancelou o quiz.';return home()}
     if(v.phase==='gone'){es.close();S={};save();V=null;err='Partida encerrada ou não encontrada.';return home()}
     off=v.now-Date.now();V=v;net=false;render()};
   es.onerror=()=>{net=true;V&&render()}}
@@ -41,15 +42,19 @@ function render(){
   if(V.phase==='reveal'){countUp();tk=setInterval(tickR,200);tickR()}if(V.phase==='q'){tk=setInterval(tick,100);tick()}}
 
 const bar=r=>`<header class=top><span class=pill>🎗️ Outubro Rosa</span>${r||''}${logo}</header>`;
-const head=()=>bar(`<span class=info>${V.me?esc(V.me.name)+' · '+V.me.score+' pts':'Sala '+V.code}</span>`);
+const head=()=>bar(`<span class=info>${V.me?esc(V.me.name)+' · '+V.me.score+' pts':'Sala '+V.code}</span>`)+acts();
+const acts=()=>V.phase==='end'?'':S.host?`<div class=acts><button class="sec mini" id=cn>${V.phase==='lobby'?'← Voltar e cancelar':'✖ Cancelar quiz'}</button>${V.phase==='lobby'?'':'<button class="sec mini" id=fn>🏁 Finalizar e ver ranking</button>'}</div>`
+  :'<div class=acts><button class="sec mini" id=lv>← Sair da partida</button></div>';
+function reset(t,m){es&&es.close();S={name:S.name};save();V=null;tab=t;err=m;home()}
 
 function home(){
   document.body.className='hero';clearInterval(tk);
   const c=new URLSearchParams(location.search).get('c')||'';let b;
   if(tab==='join')b=`<label>Código da partida<input id=c inputmode=numeric maxlength=6 placeholder="000000" autocomplete=off value="${esc(c)}"></label>
     <label>Seu apelido<input id=n maxlength=22 placeholder="Como quer aparecer no ranking?" value="${esc(S.name||'')}"></label><button class=big id=go>Entrar na partida 🎗️</button>`;
-  else if(!PRE){b='<p class=muted>Carregando quizzes…</p>';api('presets',{}).then(r=>{PRE=r.list||[];home()})}
-  else b=PRE.length?`<h3>Escolha o quiz</h3><div class=list style="margin:10px 0">${PRE.map((p,i)=>`<label class=row style="cursor:pointer;animation:none"><input type=radio name=pr value="${esc(p.id)}" ${i?'':'checked'} style="width:auto;margin:0"><span>${esc(p.title)}</span><span class=muted>${p.n} perguntas</span></label>`).join('')}</div>
+  else if(!AUTH)b=`<h3>🔒 Área do anfitrião</h3><p class=muted style="margin:6px 0 14px">Informe a senha para criar partidas.</p><label>Senha<input id=pw type=password autocomplete=current-password></label><button class=big id=lg>Entrar</button>`;
+  else if(!PRE){b='<p class=muted>Carregando quizzes…</p>';api('presets',{auth:AUTH}).then(r=>{if(r.error){AUTH='';sessionStorage.removeItem('fqa');err='Sessão expirada. Entre novamente.'}else PRE=r.list;home()})}
+  else b=PRE.length?`<div class=meta><h3>Escolha o quiz</h3><button class="sec mini" id=out>← Sair</button></div><div class=list style="margin:10px 0">${PRE.map((p,i)=>`<label class=row style="cursor:pointer;animation:none"><input type=radio name=pr value="${esc(p.id)}" ${i?'':'checked'} style="width:auto;margin:0"><span>${esc(p.title)}</span><span class=muted>${p.n} perguntas</span></label>`).join('')}</div>
     <label>Tempo por pergunta<select id=tm><option value=10>10 segundos<option value=20 selected>20 segundos<option value=30>30 segundos<option value=45>45 segundos<option value=60>60 segundos</select></label><button class=big id=mk>Criar partida ▶</button>`
     :'<p>Nenhum quiz encontrado. Coloque um arquivo <b>.txt</b> na pasta <b>quizzes</b> e recarregue a página.</p>';
   app.innerHTML=bar()+`<div class=narrow><div class=hero-t><span class=rib>🎗️</span><h1>Quiz<br>Outubro Rosa</h1><p class=muted>Teste seus conhecimentos sobre prevenção e cuidado com a saúde da mulher.</p></div>
@@ -58,14 +63,16 @@ function home(){
   const on=(i,f)=>$(i)&&($(i).onclick=f);
   on('#go',async()=>{const code=$('#c').value.trim(),r=await api('join',{code,name:$('#n').value,pid:S.c===code?S.pid:undefined});
     if(r.error){err=r.error;return home()}S={c:code,pid:r.pid,name:r.name};save();err='';connect()});
-  on('#mk',async()=>{const pr=document.querySelector('[name=pr]:checked'),r=await api('create',{time:+$('#tm').value,preset:pr&&pr.value});
-    if(r.error){err=r.error;return home()}S={c:r.code,host:r.token};save();err='';connect()})}
+  on('#lg',async()=>{const r=await api('auth',{pw:$('#pw').value});if(r.error){err=r.error;return home()}AUTH=r.auth;sessionStorage.fqa=AUTH;PRE=null;err='';home()});
+  on('#out',()=>{AUTH='';PRE=null;sessionStorage.removeItem('fqa');err='';home()});
+  on('#mk',async()=>{const pr=document.querySelector('[name=pr]:checked'),r=await api('create',{auth:AUTH,time:+$('#tm').value,preset:pr&&pr.value});
+    if(r.error){if(r.error==='auth'){AUTH='';PRE=null;sessionStorage.removeItem('fqa');err='Sessão expirada. Entre novamente.'}else err=r.error;return home()}S={c:r.code,host:r.token};save();err='';connect()})}
 
 const inviteUrl=()=>(['localhost','127.0.0.1','::1','[::1]'].includes(location.hostname)&&V.url?V.url:location.origin)+'/?c='+V.code;
 async function copy(t){try{await navigator.clipboard.writeText(t);return true}catch{}
   try{const a=document.createElement('textarea');a.value=t;a.style.cssText='position:fixed;opacity:0';document.body.appendChild(a);a.select();a.setSelectionRange(0,999);const ok=document.execCommand('copy');a.remove();return ok}catch{return false}}
 
-function lobby(h){return head()+`<div class="card lobby center"><img src="/img/logo-v.png" alt=""><span class=muted>Entre pelo celular com o código</span><div class=code>${V.code}</div>
+function lobby(h){return head()+`<div class="card lobby center"><img src="/img/logo-v.png" alt=""><span class=muted>Entre pelo link ou com o código</span><div class=code>${V.code}</div>
   ${h?`<div class=invite><input id=lk readonly value="${esc(inviteUrl())}" aria-label="Link de convite"><button class=sec id=cp>🔗 Copiar link de convite</button></div>`:'<h2>Você está dentro! 🎉</h2><p class=muted>Aguarde o anfitrião iniciar o quiz.</p>'}</div>
   <div class=meta><h2>${V.n} participante${V.n==1?'':'s'}</h2></div><div class=chips>${(V.names||[]).map(x=>`<span class=chip>${esc(x)}</span>`).join('')}</div>
   ${h?`<div class=dock><button class=big id=nx ${V.n?'':'disabled'}>Começar quiz ▶</button></div>`:''}`}
@@ -108,10 +115,13 @@ async function ans(i){if(!V||V.phase!=='q'||S.host||V.me.a||sel!=null)return;sel
 function bind(h){
   const nx=$('#nx');if(nx)nx.onclick=()=>api('host',{code:S.c,token:S.host,a:'next'});
   const cp=$('#cp');if(cp)cp.onclick=async()=>{const ok=await copy($('#lk').value);if(!ok)$('#lk').select();cp.textContent=ok?'✅ Link copiado!':'Selecione o link acima e use Ctrl+C'};
+  const cn=$('#cn');if(cn)cn.onclick=async()=>{if(!confirm('Cancelar o quiz para todos os participantes?'))return;await api('host',{code:S.c,token:S.host,a:'cancel'});reset('host','Quiz cancelado.')};
+  const fn=$('#fn');if(fn)fn.onclick=()=>confirm('Finalizar agora e mostrar o ranking final?')&&api('host',{code:S.c,token:S.host,a:'end'});
+  const lv=$('#lv');if(lv)lv.onclick=async()=>{if(!confirm('Sair da partida?'))return;await api('leave',{code:S.c,pid:S.pid});reset('join','')};
   const nw=$('#nw');if(nw)nw.onclick=()=>{es.close();S={};save();V=null;err='';tab=h?'host':'join';home()};
   if(!h&&V.phase==='q')document.querySelectorAll('button.opt').forEach(b=>b.onclick=()=>ans(+b.dataset.i))}
 document.onkeydown=e=>{
-  if(e.key==='Enter'&&e.target.tagName==='INPUT'){const b=$('#go');b&&b.click();return}
+  if(e.key==='Enter'&&e.target.tagName==='INPUT'){const b=$('#go')||$('#lg');b&&b.click();return}
   if(!V||e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA')return;
   const i='1234'.indexOf(e.key);const j='abcd'.indexOf(e.key.toLowerCase());ans(i>=0?i:j)};
 
