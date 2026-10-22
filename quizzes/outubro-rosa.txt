@@ -1,1 +1,16 @@
-
+# Quiz Outubro Rosa — Grupo Lifetec
+Qual é o principal exame utilizado no rastreamento do câncer de mama? | Ultrassom abdominal | Mamografia | Exame de sangue | Radiografia do tórax | 2
+Ter histórico familiar de câncer de mama significa que a pessoa certamente terá a doença? | Sim, em todos os casos | Não, mas pode aumentar o risco | Sim, apenas antes dos 40 anos | Não, o histórico familiar nunca influencia | 2
+Um nódulo na mama que não causa dor deve ser avaliado? | Sim, prontamente | Não, se não houver dor | Apenas se crescer por um ano | Somente durante o Outubro Rosa | 1
+Homens também podem desenvolver câncer de mama? | Não, nunca | Somente na adolescência | Sim, embora seja raro | Apenas quando há dor | 3
+Qual hábito pode contribuir para reduzir o risco de câncer de mama? | Fumar ocasionalmente | Evitar toda atividade física | Consumir álcool com frequência | Praticar atividade física regularmente | 4
+Qual alteração pode ser um sinal de alerta para câncer de mama? | Mudança temporária de humor | Retração nova na pele da mama | Dor muscular após exercício | Cansaço depois de um dia longo | 2
+O autoexame das mamas substitui a mamografia recomendada para rastreamento? | Sim, completamente | Sim, quando feito mensalmente | Não | Apenas depois dos 60 anos | 3
+Qual fator está associado ao aumento do risco de câncer de mama? | Envelhecimento | Ter olhos claros | Ser canhoto | Ter determinada altura | 1
+Uma mamografia normal elimina totalmente a possibilidade de desenvolver câncer de mama? | Sim, por toda a vida | Sim, por pelo menos dez anos | Sim, se não houver histórico familiar | Não | 4
+Segundo a orientação atual do SUS, qual é a faixa etária recomendada para o rastreamento populacional do câncer de mama, com mamografia a cada dois anos? | 30 a 49 anos | 50 a 74 anos | 18 a 39 anos | A partir dos 75 anos para todas as pessoas | 2
+Qual hábito pode ajudar a reduzir o risco de câncer de mama? | Consumir bebidas alcoólicas com frequência | Manter atividade física regular | Evitar consultas médicas | Dormir menos horas | 2
+O câncer de mama pode ser identificado antes de causar sintomas? | Sim, por meio do rastreamento | Não, somente após sentir dor | Não, apenas quando surge um nódulo | Sim, somente por exame de sangue | 1
+Qual alteração na mama merece avaliação médica? | Uma mudança persistente no formato | A variação normal ao longo do ciclo menstrual | A ausência de dor | O tamanho naturalmente diferente entre as mamas | 1
+Amamentar pode influenciar o risco de câncer de mama? | Não existe relação | Sim, pode reduzir o risco | Sim, aumenta o risco em todos os casos | Apenas após os 60 anos | 2
+O que fazer ao perceber uma alteração suspeita na mama? | Esperar até a próxima campanha Outubro Rosa | Fazer apenas o autoexame por alguns meses | Procurar um serviço de saúde para avaliação | Considerar que é normal se não houver dor | 3
