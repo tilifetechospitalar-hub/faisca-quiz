@@ -17,4 +17,6 @@ Os quizzes ficam em `quizzes/*.txt` (uma pergunta por linha: `pergunta | A | B |
 - O Render pode reiniciar o serviço a qualquer momento, o que encerra as salas em andamento (ficam só na memória).
 - Para manter acordado antes do evento, use um monitor gratuito (ex.: UptimeRobot) apontando para `/healthz`.
 - Para atualizar o quiz: edite o `.txt`, envie ao GitHub; o Render publica sozinho.
-# faisca-quiz
+
+## Senha do anfitrião
+Padrão: `lifetecrosa`. Para trocar sem mexer no código, no Render abra **Environment** e crie `HOST_PASSWORD` com a nova senha (recomendado se o repositório for público).

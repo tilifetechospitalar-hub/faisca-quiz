@@ -2,6 +2,8 @@
 // Tempo real: SSE (servidor→cliente) + POST (cliente→servidor). O servidor é a única fonte de verdade.
 const http=require('http'),fs=require('fs'),path=require('path'),cr=require('crypto');
 const PORT=process.env.PORT||3000,MAXP=150,GRACE=400,REV=(+process.env.REVEAL_SECONDS||10)*1000; // REV: tempo do resultado antes da próxima pergunta // GRACE: tolerância (ms) para latência de rede
+const PASS=process.env.HOST_PASSWORD||'lifetecrosa',SESS=new Map(),FAIL=new Map(); // senha do anfitrião (pode ser trocada pela variável HOST_PASSWORD)
+const authed=t=>(SESS.get(String(t))||0)>Date.now();
 const lanIP=()=>{const i=Object.values(require('os').networkInterfaces()).flat().find(x=>x&&(x.family==='IPv4'||x.family===4)&&!x.internal);return i&&i.address};
 const BASE=process.env.PUBLIC_URL||(lanIP()?`http://${lanIP()}:${PORT}`:'');
 const parse=t=>String(t||'').split('\n').filter(l=>l.trim()&&l[0]!=='#').slice(0,50).map(l=>{
@@ -63,8 +65,18 @@ function answer(g,p,c){
   return{ok:true}}
 
 const routes={
-  presets(){return{list:presets().map(p=>({id:p.id,title:p.title,n:p.quiz.length}))}},
+  auth(b,req){ // login do anfitrião: comparação segura + bloqueio após 5 erros
+    const ip=req.socket.remoteAddress,f=FAIL.get(ip)||{n:0,until:0},h=x=>cr.createHash('sha256').update(String(x)).digest();
+    if(f.until>Date.now())return{error:'Muitas tentativas. Aguarde 5 minutos.'};
+    if(!cr.timingSafeEqual(h(b.pw),h(PASS))){if(++f.n>=5){f.n=0;f.until=Date.now()+3e5}FAIL.set(ip,f);return{error:'Senha incorreta.'}}
+    FAIL.delete(ip);const t=rid();SESS.set(t,Date.now()+8*36e5);return{auth:t}},
+  presets(b){return authed(b.auth)?{list:presets().map(p=>({id:p.id,title:p.title,n:p.quiz.length}))}:{error:'auth'}},
+  leave(b){ // participante sai da partida
+    const g=G.get(String(b.code)),p=g&&g.P.get(b.pid);if(!p)return{ok:true};
+    if(g.phase==='q'&&p.ans)g.na--;g.P.delete(p.id);try{p.res&&p.res.end()}catch{}p.res=null;
+    if(g.phase==='q'&&g.P.size&&g.na>=g.P.size)reveal(g);else sched(g);return{ok:true}},
   create(b){
+    if(!authed(b.auth))return{error:'auth'};
     if(G.size>=30)return{error:'Limite de salas ativas atingido.'};
     const ps=presets(),qz=(ps.find(p=>p.id===b.preset)||ps[0]||{}).quiz;
     if(!qz||!qz.length)return{error:'Quiz sem perguntas válidas.'};
@@ -93,6 +105,8 @@ const routes={
       if(g.phase==='lobby')nextQ(g);else if(g.phase==='reveal')advance(g)
       else if(g.phase==='q')reveal(g)}
     if(b.a==='end'){clearTimeout(g.timer);g.phase='end';push(g)}
+    if(b.a==='cancel'){clearTimeout(g.timer);const m='data:{"phase":"cancel"}\n\n',w=r=>{try{r.write(m);r.end()}catch{}};
+      g.H.forEach(w);g.P.forEach(p=>p.res&&w(p.res));G.delete(g.code)} // só quem tem o token do anfitrião chega aqui
     return{ok:true}}};
 
 function events(req,res,u){
@@ -123,4 +137,5 @@ http.createServer((req,res)=>{
 .listen(PORT,'0.0.0.0',()=>{
   const ip=Object.values(require('os').networkInterfaces()).flat().find(i=>i&&(i.family==='IPv4'||i.family===4)&&!i.internal);
   console.log(`Quiz Outubro Rosa · Grupo Lifetec rodando!\n  Neste computador: http://localhost:${PORT}\n  Na mesma rede (celulares): http://${ip?ip.address:'SEU-IP'}:${PORT}`);});
+setInterval(()=>SESS.forEach((e,k)=>{if(e<Date.now())SESS.delete(k)}),36e5);
 setInterval(()=>G.forEach((g,k)=>{if(Date.now()-g.last>4*36e5)G.delete(k)}),6e5); // limpa salas antigas
