@@ -8,7 +8,7 @@ Qual alteração pode ser um sinal de alerta para câncer de mama? | Mudança te
 O autoexame das mamas substitui a mamografia recomendada para rastreamento? | Verdadeiro | Falso | 2
 Qual fator está associado ao aumento do risco de câncer de mama? | Envelhecimento | Emagrecimento | Próteses | Volume da mama | 1
 Uma mamografia normal elimina totalmente a possibilidade de desenvolver câncer de mama? | Sim, por toda a vida | Sim, por pelo menos dez anos | Sim, se não houver histórico familiar | Não | 4
-Segundo a orientação atual do SUS, qual é a faixa etária recomendada para o rastreamento populacional do câncer de mama? | 30 a 49 anos | 50 a 74 anos | 18 a 39 anos | A partir dos 75 anos para todas as pessoas | 2
+Segundo a orientação atual do SUS, qual é a faixa etária recomendada para o rastreamento populacional do câncer de mama? | 25 a 39 anos | a partir dos 40 anos | 18 a 25 anos | A partir dos 75 anos para todas as pessoas | 2
 Qual a cor define a campanha ao longo do mês? | Azul | Amarelo | Rosa | Verde | 3
 O câncer de mama pode ser identificado antes de causar sintomas? | Verdadeiro | Falso | 1
 Qual alteração na mama merece avaliação médica? | Mudança persistente no formato | Variação da mama no ciclo mestrual | A ausência de dor | O tamanho naturalmente diferente entre as mamas | 1
