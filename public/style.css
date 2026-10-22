@@ -68,3 +68,4 @@ div.opt{cursor:default}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}#petals,#fx{display:none}}
 
 .acts{display:flex;gap:8px;flex-wrap:wrap}.mini{padding:8px 14px;font-size:14px;box-shadow:0 3px 0 #f3b6cf}
+.row small{font-weight:900;margin-left:6px}.row .up{color:#1f9e82}.row .dn{color:#c0262d}

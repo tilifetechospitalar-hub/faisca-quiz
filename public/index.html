@@ -36,10 +36,10 @@ function connect(){
 function render(){
   clearInterval(tk);if(!V)return home();
   document.body.className=(V.phase==='lobby'||V.phase==='end')?'hero':'';
-  const h=!!S.host,P={lobby,q:question,reveal,end}[V.phase];
+  const h=!!S.host,P={lobby,q:question,reveal,rank,end}[V.phase];
   app.innerHTML=(net?'<div class=net>Reconectando…</div>':'')+P(h);bind(h);
   const k=V.phase+V.qi;if(k!==fx){fx=k;if(V.phase==='end')fxb('conf');if(V.phase==='reveal'&&V.me&&V.me.a&&V.me.a.ok)fxb('heart')}
-  if(V.phase==='reveal'){countUp();tk=setInterval(tickR,200);tickR()}if(V.phase==='q'){tk=setInterval(tick,100);tick()}}
+  if(V.phase==='reveal')countUp();if(V.phase==='q'){tk=setInterval(tick,100);tick()}}
 
 const bar=r=>`<header class=top><span class=pill>🎗️ Outubro Rosa</span>${r||''}${logo}</header>`;
 const head=()=>bar(`<span class=info>${V.me?esc(V.me.name)+' · '+V.me.score+' pts':'Sala '+V.code}</span>`)+acts();
@@ -72,7 +72,7 @@ const inviteUrl=()=>(['localhost','127.0.0.1','::1','[::1]'].includes(location.h
 async function copy(t){try{await navigator.clipboard.writeText(t);return true}catch{}
   try{const a=document.createElement('textarea');a.value=t;a.style.cssText='position:fixed;opacity:0';document.body.appendChild(a);a.select();a.setSelectionRange(0,999);const ok=document.execCommand('copy');a.remove();return ok}catch{return false}}
 
-function lobby(h){return head()+`<div class="card lobby center"><img src="/img/logo-v.png" alt=""><span class=muted>Entre pelo link ou com o código</span><div class=code>${V.code}</div>
+function lobby(h){return head()+`<div class="card lobby center"><img src="/img/logo-v.png" alt=""><span class=muted>Entre pelo celular com o código</span><div class=code>${V.code}</div>
   ${h?`<div class=invite><input id=lk readonly value="${esc(inviteUrl())}" aria-label="Link de convite"><button class=sec id=cp>🔗 Copiar link de convite</button></div>`:'<h2>Você está dentro! 🎉</h2><p class=muted>Aguarde o anfitrião iniciar o quiz.</p>'}</div>
   <div class=meta><h2>${V.n} participante${V.n==1?'':'s'}</h2></div><div class=chips>${(V.names||[]).map(x=>`<span class=chip>${esc(x)}</span>`).join('')}</div>
   ${h?`<div class=dock><button class=big id=nx ${V.n?'':'disabled'}>Começar quiz ▶</button></div>`:''}`}
@@ -89,19 +89,24 @@ function tick(){const t=V.end-(Date.now()+off),f=Math.max(0,Math.min(1,t/(V.dur*
   g.style.strokeDashoffset=201.06*(1-f);g.style.stroke=f<.25?'#ff7a59':f<.5?'#ffc83d':'#1f9e82';
   const s=Math.max(0,Math.ceil(t/1000));$('#sec').textContent=s;$('#ring').classList.toggle('low',s<=5&&s>0)}
 
-function tickR(){const t=V.nextAt-(Date.now()+off),e=$('#nxt');if(!e)return;const s=Math.max(0,Math.ceil(t/1000));
-  e.textContent=(V.last?'🏆 Ranking final em ':'⏭ Próxima pergunta em ')+s+'s';$('#nxb').style.width=Math.max(0,Math.min(100,t/V.rev*100))+'%'}
 function reveal(h){const a=V.me&&V.me.a,mx=Math.max(1,...V.dist),T=TIPS[V.qi%4];let bn='';
   if(!h)bn=!a?`<div class="banner tm"><div class=e>⏱️</div><h2>Tempo esgotado</h2><p>Sem pontos nesta pergunta</p></div>`
    :a.ok?`<div class="banner ok"><div class=e>🎉</div><h2>Acertou! +<span id=pts data-v="${a.pts}">0</span> pts</h2>${V.me.streak>1?`<p>🔥 Sequência de ${V.me.streak} acertos</p>`:''}</div>`
    :`<div class="banner no"><div class=e>💪</div><h2>Não foi dessa vez</h2><p>A resposta certa está destacada abaixo</p></div>`;
-  return head()+`<div class=prog><b style="width:${(V.qi+1)/V.total*100}%"></b></div><div class=next><span id=nxt></span><div class=prog><b id=nxb></b></div></div>`+bn+`<div class="card qcard" style="font-size:22px">${esc(V.q)}</div>
+  return head()+`<div class=prog><b style="width:${(V.qi+1)/V.total*100}%"></b></div>`+bn+`<div class="card qcard" style="font-size:22px">${esc(V.q)}</div>
   <div class=opts>${V.o.map((o,i)=>`<div class="opt o${i} ${i===V.c?'right':'dim'}"><div class=fill style="width:${V.dist[i]/mx*100}%"></div><b>${i===V.c?'✔':L[i]}</b><span>${esc(o)}</span><span class=n>${V.dist[i]}</span></div>`).join('')}</div>
   <div class=tip><i>${ICON[V.qi%4]}</i><small>Você sabia?</small><h3>${T[0]}</h3><p>${T[1]}</p></div>
-  <h2>Ranking parcial</h2><div class=list>${rows(V.top)}</div>${!h&&V.me.pos>5?`<div class="row me"><b>${V.me.pos}º</b><span>${esc(V.me.name)}</span><span>${V.me.score} pts</span></div>`:''}
-  ${h?`<div class=dock><button class=big id=nx>${V.last?'Ver ranking final agora 🏆':'Pular espera ▶'}</button></div>`:'<p class="muted center">Aguardando o anfitrião…</p>'}`}
+  ${h?`<div class=dock><button class=big id=nx>${V.last?'Ver ranking final 🏆':'Ver ranking ▶'}</button></div>`:'<p class="muted center">Aguardando o anfitrião mostrar o ranking…</p>'}`}
 
-const rows=l=>l.map((x,i)=>`<div class="row ${V.me&&x.id===V.me.id?'me':''}" style="animation-delay:${Math.min(i,12)*50}ms"><b>${['🥇','🥈','🥉'][x.pos-1]||x.pos+'º'}</b><span>${esc(x.name)}</span><span>${x.score} pts</span></div>`).join('');
+function rank(h){const m=V.me,out=m&&m.pos>10;
+  return head()+`<div class=prog><b style="width:${(V.qi+1)/V.total*100}%"></b></div>
+  <div class=center><h1>🏆 Ranking atual</h1><p class=muted>Após a pergunta ${V.qi+1} de ${V.total} · ${V.n} participante${V.n==1?'':'s'}</p></div>
+  ${m?`<div class="banner ok"><h2>Você está em ${m.pos}º lugar</h2><p>${m.score} pontos ${m.d>0?'· ▲ subiu '+m.d:m.d<0?'· ▼ caiu '+(-m.d):''}</p></div>`:''}
+  <div class=list>${rows(V.top)}</div>${out?`<div class="row me"><b>${m.pos}º</b><span>${esc(m.name)}</span><span>${m.score} pts</span></div>`:''}
+  ${h?`<div class=dock><button class=big id=nx>Próxima pergunta ▶</button></div>`:'<p class="muted center">Aguardando o anfitrião iniciar a próxima pergunta…</p>'}`}
+
+const arrow=d=>d>0?`<small class=up>▲${d}</small>`:d<0?`<small class=dn>▼${-d}</small>`:'';
+const rows=l=>l.map((x,i)=>`<div class="row ${V.me&&x.id===V.me.id?'me':''}" style="animation-delay:${Math.min(i,12)*50}ms"><b>${['🥇','🥈','🥉'][x.pos-1]||x.pos+'º'}</b><span>${esc(x.name)} ${arrow(x.d)}</span><span>${x.score} pts</span></div>`).join('');
 
 function end(h){const t=V.top,c=['#ffc83d','#d7dde8','#e8a06f'],ord=[1,0,2].filter(i=>t[i]);
   return head()+`<div class=center><h1>Ranking final 🏆</h1><p class=muted>Obrigado por participar do Outubro Rosa!</p></div>
