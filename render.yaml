@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: quiz-outubro-rosa
+    runtime: node
+    plan: free
+    region: ohio            # mais próximo do Brasil entre as opções gratuitas
+    buildCommand: echo "sem dependências"
+    startCommand: node server.js
+    healthCheckPath: /healthz
