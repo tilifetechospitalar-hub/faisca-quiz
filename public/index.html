@@ -1,1 +1,119 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#e8559a">
+<title>Quiz Outubro Rosa · Grupo Lifetec</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css"></head>
+<body><div id="petals" aria-hidden="true"></div><div id="fx" aria-hidden="true"></div><div id="app"></div>
+<script>
+const $=s=>document.querySelector(s),app=$('#app'),esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let S={};try{S=JSON.parse(localStorage.fq||'{}')}catch{}
+let PRE=null,es,V,off=0,net=false,sel=null,selQ=-1,tab='join',err='',tk,fx='';
+const save=()=>localStorage.fq=JSON.stringify(S);
+const api=(p,b)=>fetch('/api/'+p,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(r=>r.json()).catch(()=>({error:'Sem conexão. Tente de novo.'}));
+const L='ABCD',logo='<img class=logo src="/img/logo-h.png" alt="Grupo Lifetec">',ICON=['🔍','🍎','🩺','💗'];
+const TIPS=[['Conheça seu corpo','Observe suas mamas no dia a dia. Alterações como caroços persistentes, mudanças no formato, retrações na pele ou no mamilo e saída espontânea de líquido devem ser avaliadas por um profissional de saúde.'],
+['Hábitos saudáveis','Manter-se fisicamente ativa, cuidar da alimentação, manter um peso saudável e evitar ou reduzir o consumo de bebidas alcoólicas são atitudes associadas à redução do risco de câncer de mama.'],
+['Exames preventivos','A mamografia pode identificar alterações antes mesmo de serem percebidas. A indicação e a frequência dependem da idade e dos fatores de risco: siga a orientação dos profissionais de saúde.'],
+['Acompanhamento médico','Nem toda alteração na mama significa câncer, mas mudanças persistentes não devem ser ignoradas. A avaliação profissional permite investigar a causa e iniciar o cuidado o quanto antes.']];
+for(let i=0;i<14;i++){const p=document.createElement('span');p.className='petal';Object.assign(p.style,{left:Math.random()*100+'%',animationDuration:9+Math.random()*9+'s',animationDelay:-Math.random()*14+'s',transform:'scale('+(.6+Math.random())+')'});$('#petals').appendChild(p)}
 
+function fxb(k){const f=$('#fx'),C=['#e8559a','#ffc83d','#0077c4','#1f9e82','#ff9ac4'],n=k==='conf'?70:16;
+  for(let i=0;i<n;i++){const s=document.createElement('span');
+    Object.assign(s.style,{left:Math.random()*100+'%',animationDuration:2.5+Math.random()*3+'s',animationDelay:Math.random()*.8+'s'});
+    if(k==='conf'){s.style.cssText+=`width:10px;height:14px;border-radius:2px;background:${C[i%5]}`}else{s.className='up';s.textContent='💗';s.style.fontSize=18+Math.random()*18+'px'}
+    f.appendChild(s);setTimeout(()=>s.remove(),7000)}}
+function countUp(){const e=$('#pts');if(!e)return;const t=+e.dataset.v,s=performance.now();(function f(n){const k=Math.min(1,(n-s)/700);e.textContent=Math.round(t*k);if(k<1)requestAnimationFrame(f)})(s)}
+
+function connect(){
+  es&&es.close();es=new EventSource('/api/events?c='+S.c+(S.host?'&h='+S.host:'&p='+S.pid));
+  es.onopen=()=>{net=false;V&&render()};
+  es.onmessage=e=>{const v=JSON.parse(e.data);
+    if(v.phase==='gone'){es.close();S={};save();V=null;err='Partida encerrada ou não encontrada.';return home()}
+    off=v.now-Date.now();V=v;net=false;render()};
+  es.onerror=()=>{net=true;V&&render()}}
+
+function render(){
+  clearInterval(tk);if(!V)return home();
+  document.body.className=(V.phase==='lobby'||V.phase==='end')?'hero':'';
+  const h=!!S.host,P={lobby,q:question,reveal,end}[V.phase];
+  app.innerHTML=(net?'<div class=net>Reconectando…</div>':'')+P(h);bind(h);
+  const k=V.phase+V.qi;if(k!==fx){fx=k;if(V.phase==='end')fxb('conf');if(V.phase==='reveal'&&V.me&&V.me.a&&V.me.a.ok)fxb('heart')}
+  if(V.phase==='reveal'){countUp();tk=setInterval(tickR,200);tickR()}if(V.phase==='q'){tk=setInterval(tick,100);tick()}}
+
+const bar=r=>`<header class=top><span class=pill>🎗️ Outubro Rosa</span>${r||''}${logo}</header>`;
+const head=()=>bar(`<span class=info>${V.me?esc(V.me.name)+' · '+V.me.score+' pts':'Sala '+V.code}</span>`);
+
+function home(){
+  document.body.className='hero';clearInterval(tk);
+  const c=new URLSearchParams(location.search).get('c')||'';let b;
+  if(tab==='join')b=`<label>Código da partida<input id=c inputmode=numeric maxlength=6 placeholder="000000" autocomplete=off value="${esc(c)}"></label>
+    <label>Seu apelido<input id=n maxlength=22 placeholder="Como quer aparecer no ranking?" value="${esc(S.name||'')}"></label><button class=big id=go>Entrar na partida 🎗️</button>`;
+  else if(!PRE){b='<p class=muted>Carregando quizzes…</p>';api('presets',{}).then(r=>{PRE=r.list||[];home()})}
+  else b=PRE.length?`<h3>Escolha o quiz</h3><div class=list style="margin:10px 0">${PRE.map((p,i)=>`<label class=row style="cursor:pointer;animation:none"><input type=radio name=pr value="${esc(p.id)}" ${i?'':'checked'} style="width:auto;margin:0"><span>${esc(p.title)}</span><span class=muted>${p.n} perguntas</span></label>`).join('')}</div>
+    <label>Tempo por pergunta<select id=tm><option value=10>10 segundos<option value=20 selected>20 segundos<option value=30>30 segundos<option value=45>45 segundos<option value=60>60 segundos</select></label><button class=big id=mk>Criar partida ▶</button>`
+    :'<p>Nenhum quiz encontrado. Coloque um arquivo <b>.txt</b> na pasta <b>quizzes</b> e recarregue a página.</p>';
+  app.innerHTML=bar()+`<div class=narrow><div class=hero-t><span class=rib>🎗️</span><h1>Quiz<br>Outubro Rosa</h1><p class=muted>Teste seus conhecimentos sobre prevenção e cuidado com a saúde da mulher.</p></div>
+    <div class=tabs><button class="${tab=='join'?'on':'sec'}" data-t=join>Participar</button><button class="${tab=='host'?'on':'sec'}" data-t=host>Anfitrião</button></div><div class=card>${b}<div class=err>${esc(err)}</div></div></div>`;
+  document.querySelectorAll('[data-t]').forEach(x=>x.onclick=()=>{tab=x.dataset.t;err='';home()});
+  const on=(i,f)=>$(i)&&($(i).onclick=f);
+  on('#go',async()=>{const code=$('#c').value.trim(),r=await api('join',{code,name:$('#n').value,pid:S.c===code?S.pid:undefined});
+    if(r.error){err=r.error;return home()}S={c:code,pid:r.pid,name:r.name};save();err='';connect()});
+  on('#mk',async()=>{const pr=document.querySelector('[name=pr]:checked'),r=await api('create',{time:+$('#tm').value,preset:pr&&pr.value});
+    if(r.error){err=r.error;return home()}S={c:r.code,host:r.token};save();err='';connect()})}
+
+const inviteUrl=()=>(['localhost','127.0.0.1','::1','[::1]'].includes(location.hostname)&&V.url?V.url:location.origin)+'/?c='+V.code;
+async function copy(t){try{await navigator.clipboard.writeText(t);return true}catch{}
+  try{const a=document.createElement('textarea');a.value=t;a.style.cssText='position:fixed;opacity:0';document.body.appendChild(a);a.select();a.setSelectionRange(0,999);const ok=document.execCommand('copy');a.remove();return ok}catch{return false}}
+
+function lobby(h){return head()+`<div class="card lobby center"><img src="/img/logo-v.png" alt=""><span class=muted>Entre pelo celular com o código</span><div class=code>${V.code}</div>
+  ${h?`<div class=invite><input id=lk readonly value="${esc(inviteUrl())}" aria-label="Link de convite"><button class=sec id=cp>🔗 Copiar link de convite</button></div>`:'<h2>Você está dentro! 🎉</h2><p class=muted>Aguarde o anfitrião iniciar o quiz.</p>'}</div>
+  <div class=meta><h2>${V.n} participante${V.n==1?'':'s'}</h2></div><div class=chips>${(V.names||[]).map(x=>`<span class=chip>${esc(x)}</span>`).join('')}</div>
+  ${h?`<div class=dock><button class=big id=nx ${V.n?'':'disabled'}>Começar quiz ▶</button></div>`:''}`}
+
+function question(h){
+  if(selQ!==V.qi){sel=null;selQ=V.qi}const a=V.me&&V.me.a?V.me.a.c:sel;
+  return head()+`<div class=meta><span class=pill>Pergunta ${V.qi+1} de ${V.total}</span><div class=ring id=ring><svg viewBox="0 0 76 76" width=76 height=76><circle class=bg cx=38 cy=38 r=32></circle><circle class=fg id=fg cx=38 cy=38 r=32 stroke-dasharray="201.06" stroke-dashoffset=0></circle></svg><b id=sec></b></div></div>
+  <div class=prog><b style="width:${V.qi/V.total*100}%"></b></div><div class="card qcard">${esc(V.q)}</div>
+  <div class=opts>${V.o.map((o,i)=>`<${h?'div':'button'} class="opt o${i} ${a===i?'sel':a!=null?'dim':''}" data-i=${i}><b>${L[i]}</b><span>${esc(o)}</span></${h?'div':'button'}>`).join('')}</div>
+  ${h?`<div class="card status"><div class=prog><b style="width:${V.n?V.ans/V.n*100:0}%"></b></div><span>${V.ans} de ${V.n} responderam</span></div><div class=dock><button class=big id=nx>Encerrar pergunta ⏭</button></div>`
+  :`<p class="muted center">${a!=null?'✅ Resposta enviada! O resultado aparece quando todos responderem ou o tempo acabar.':'Toque na resposta (ou use as teclas 1 a 4). O resultado aparece quando todos responderem ou o tempo acabar.'}</p>`}`}
+
+function tick(){const t=V.end-(Date.now()+off),f=Math.max(0,Math.min(1,t/(V.dur*1000))),g=$('#fg');if(!g)return;
+  g.style.strokeDashoffset=201.06*(1-f);g.style.stroke=f<.25?'#ff7a59':f<.5?'#ffc83d':'#1f9e82';
+  const s=Math.max(0,Math.ceil(t/1000));$('#sec').textContent=s;$('#ring').classList.toggle('low',s<=5&&s>0)}
+
+function tickR(){const t=V.nextAt-(Date.now()+off),e=$('#nxt');if(!e)return;const s=Math.max(0,Math.ceil(t/1000));
+  e.textContent=(V.last?'🏆 Ranking final em ':'⏭ Próxima pergunta em ')+s+'s';$('#nxb').style.width=Math.max(0,Math.min(100,t/V.rev*100))+'%'}
+function reveal(h){const a=V.me&&V.me.a,mx=Math.max(1,...V.dist),T=TIPS[V.qi%4];let bn='';
+  if(!h)bn=!a?`<div class="banner tm"><div class=e>⏱️</div><h2>Tempo esgotado</h2><p>Sem pontos nesta pergunta</p></div>`
+   :a.ok?`<div class="banner ok"><div class=e>🎉</div><h2>Acertou! +<span id=pts data-v="${a.pts}">0</span> pts</h2>${V.me.streak>1?`<p>🔥 Sequência de ${V.me.streak} acertos</p>`:''}</div>`
+   :`<div class="banner no"><div class=e>💪</div><h2>Não foi dessa vez</h2><p>A resposta certa está destacada abaixo</p></div>`;
+  return head()+`<div class=prog><b style="width:${(V.qi+1)/V.total*100}%"></b></div><div class=next><span id=nxt></span><div class=prog><b id=nxb></b></div></div>`+bn+`<div class="card qcard" style="font-size:22px">${esc(V.q)}</div>
+  <div class=opts>${V.o.map((o,i)=>`<div class="opt o${i} ${i===V.c?'right':'dim'}"><div class=fill style="width:${V.dist[i]/mx*100}%"></div><b>${i===V.c?'✔':L[i]}</b><span>${esc(o)}</span><span class=n>${V.dist[i]}</span></div>`).join('')}</div>
+  <div class=tip><i>${ICON[V.qi%4]}</i><small>Você sabia?</small><h3>${T[0]}</h3><p>${T[1]}</p></div>
+  <h2>Ranking parcial</h2><div class=list>${rows(V.top)}</div>${!h&&V.me.pos>5?`<div class="row me"><b>${V.me.pos}º</b><span>${esc(V.me.name)}</span><span>${V.me.score} pts</span></div>`:''}
+  ${h?`<div class=dock><button class=big id=nx>${V.last?'Ver ranking final agora 🏆':'Pular espera ▶'}</button></div>`:'<p class="muted center">Aguardando o anfitrião…</p>'}`}
+
+const rows=l=>l.map((x,i)=>`<div class="row ${V.me&&x.id===V.me.id?'me':''}" style="animation-delay:${Math.min(i,12)*50}ms"><b>${['🥇','🥈','🥉'][x.pos-1]||x.pos+'º'}</b><span>${esc(x.name)}</span><span>${x.score} pts</span></div>`).join('');
+
+function end(h){const t=V.top,c=['#ffc83d','#d7dde8','#e8a06f'],ord=[1,0,2].filter(i=>t[i]);
+  return head()+`<div class=center><h1>Ranking final 🏆</h1><p class=muted>Obrigado por participar do Outubro Rosa!</p></div>
+  <div class=pod>${ord.map(i=>`<div style="background:${c[i]};height:${[100,76,58][i]}%;animation-delay:${i?0:.5}s"><em>${['🥇','🥈','🥉'][i]}</em>${esc(t[i].name)}<br>${t[i].score} pts</div>`).join('')}</div>
+  ${V.me?`<div class="banner ok"><h2>Você ficou em ${V.me.pos}º lugar!</h2><p>${V.me.score} pontos</p></div>`:''}
+  <div class=list>${rows(t)}</div><p class="muted center" style="font-size:14px">Desempate: menor tempo total nas respostas certas. Mesma pontuação e tempo = mesma posição.</p>
+  <div class=center><img src="/img/logo-v.png" alt="Grupo Lifetec" style="height:90px"></div><button class=big id=nw>${h?'Nova partida':'Sair'}</button>`}
+
+async function ans(i){if(!V||V.phase!=='q'||S.host||V.me.a||sel!=null)return;sel=i;render();
+  const r=await api('answer',{code:S.c,pid:S.pid,c:i});if(!r.ok&&!r.dup){sel=null;render()}}
+function bind(h){
+  const nx=$('#nx');if(nx)nx.onclick=()=>api('host',{code:S.c,token:S.host,a:'next'});
+  const cp=$('#cp');if(cp)cp.onclick=async()=>{const ok=await copy($('#lk').value);if(!ok)$('#lk').select();cp.textContent=ok?'✅ Link copiado!':'Selecione o link acima e use Ctrl+C'};
+  const nw=$('#nw');if(nw)nw.onclick=()=>{es.close();S={};save();V=null;err='';tab=h?'host':'join';home()};
+  if(!h&&V.phase==='q')document.querySelectorAll('button.opt').forEach(b=>b.onclick=()=>ans(+b.dataset.i))}
+document.onkeydown=e=>{
+  if(e.key==='Enter'&&e.target.tagName==='INPUT'){const b=$('#go');b&&b.click();return}
+  if(!V||e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA')return;
+  const i='1234'.indexOf(e.key);const j='abcd'.indexOf(e.key.toLowerCase());ans(i>=0?i:j)};
+
+if(S.c&&(S.pid||S.host))connect();else home();
+</script></body></html>
