@@ -1,7 +1,7 @@
 // Quiz Outubro Rosa · Grupo Lifetec — servidor em tempo real, zero dependências (Node >= 18).
 // Tempo real: SSE (servidor→cliente) + POST (cliente→servidor). O servidor é a única fonte de verdade.
 const http=require('http'),fs=require('fs'),path=require('path'),cr=require('crypto');
-const PORT=process.env.PORT||3000,MAXP=150,GRACE=400,REV=(+process.env.REVEAL_SECONDS||10)*1000; // REV: tempo do resultado antes da próxima pergunta // GRACE: tolerância (ms) para latência de rede
+const PORT=process.env.PORT||3000,MAXP=150,GRACE=400; // GRACE: tolerância (ms) para latência de rede
 const PASS=process.env.HOST_PASSWORD||'lifetecrosa',SESS=new Map(),FAIL=new Map(); // senha do anfitrião (pode ser trocada pela variável HOST_PASSWORD)
 const authed=t=>(SESS.get(String(t))||0)>Date.now();
 const lanIP=()=>{const i=Object.values(require('os').networkInterfaces()).flat().find(x=>x&&(x.family==='IPv4'||x.family===4)&&!x.internal);return i&&i.address};
@@ -22,12 +22,12 @@ function view(g,p,rk){
   const q=g.quiz[g.qi],v={phase:g.phase,code:g.code,n:g.P.size,total:g.quiz.length,qi:g.qi,now:Date.now()};
   if(g.phase==='lobby'){v.names=[...g.P.values()].slice(-80).map(x=>x.name);if(!p)v.url=BASE}
   if(q&&g.phase!=='end'){v.q=q.q;v.o=q.o;v.end=g.end;v.dur=g.time}
-  if(g.phase==='reveal'){v.c=q.c;v.dist=g.dist;v.nextAt=g.nextAt;v.rev=REV;v.last=g.qi+1>=g.quiz.length}
-  if(g.phase==='reveal'||g.phase==='end'){
-    const l=rk.map(x=>({id:x.id,name:x.name,score:x.score,pos:x.pos}));
-    v.top=(g.phase==='end'&&!p)?l:l.slice(0,g.phase==='end'?10:5)}
+  if(g.phase==='reveal'){v.c=q.c;v.dist=g.dist;v.last=g.qi+1>=g.quiz.length}
+  if(g.phase==='rank'||g.phase==='end'){ // d = posições ganhas (+) ou perdidas (-) desde a pergunta anterior
+    const l=rk.map(x=>({id:x.id,name:x.name,score:x.score,pos:x.pos,d:x.prev?x.prev-x.pos:0}));
+    v.top=(g.phase==='end'&&!p)?l:l.slice(0,10)}
   if(p){const r=g.phase==='reveal';
-    v.me={id:p.id,name:p.name,score:p.score,pos:p.pos,streak:p.streak,
+    v.me={id:p.id,name:p.name,score:p.score,pos:p.pos,streak:p.streak,d:p.prev?p.prev-p.pos:0,
       a:p.ans?{c:p.ans.c,ok:r?p.ans.ok:undefined,pts:r?p.ans.pts:undefined}:null}}
   else v.ans=g.na;
   return v}
@@ -41,15 +41,17 @@ function sched(g,hostOnly){ // agrega rajadas de eventos (entradas/respostas) em
   g.tAll=!hostOnly;g.t=setTimeout(()=>{g.t=0;push(g,!g.tAll)},250)}
 
 function nextQ(g){
-  clearTimeout(g.timer);g.qi++;g.phase='q';g.na=0;g.P.forEach(p=>p.ans=null);
+  clearTimeout(g.timer);if(g.qi>=0){rank(g);g.P.forEach(p=>p.prev=p.pos)} // guarda posições para mostrar subidas/descidas
+  g.qi++;g.phase='q';g.na=0;g.P.forEach(p=>p.ans=null);
   g.start=Date.now();g.end=g.start+g.time*1000;
   g.timer=setTimeout(()=>reveal(g),g.time*1000+GRACE+100);push(g)}
 function reveal(g){
   if(g.phase!=='q')return;clearTimeout(g.timer);g.phase='reveal';
   const q=g.quiz[g.qi];g.dist=q.o.map(()=>0);
   g.P.forEach(p=>{if(p.ans)g.dist[p.ans.c]++;else p.streak=0});
-  g.nextAt=Date.now()+REV;g.timer=setTimeout(()=>advance(g),REV);push(g)} // avança sozinho
-function advance(g){if(g.phase!=='reveal')return;clearTimeout(g.timer);g.qi+1<g.quiz.length?nextQ(g):(g.phase='end',push(g))}
+  push(g)} // o anfitrião decide quando continuar
+function advance(g){ // resultado → ranking → próxima pergunta (na última: resultado → ranking final)
+  if(g.phase==='reveal'){g.qi+1<g.quiz.length?(g.phase='rank',push(g)):(g.phase='end',push(g))}else if(g.phase==='rank')nextQ(g)}
 
 function answer(g,p,c){
   const now=Date.now();
@@ -102,7 +104,7 @@ const routes={
   host(b){
     const g=G.get(String(b.code));if(!g||g.token!==b.token)return{error:'gone'};
     if(b.a==='next'){
-      if(g.phase==='lobby')nextQ(g);else if(g.phase==='reveal')advance(g)
+      if(g.phase==='lobby')nextQ(g);else if(g.phase==='reveal'||g.phase==='rank')advance(g)
       else if(g.phase==='q')reveal(g)}
     if(b.a==='end'){clearTimeout(g.timer);g.phase='end';push(g)}
     if(b.a==='cancel'){clearTimeout(g.timer);const m='data:{"phase":"cancel"}\n\n',w=r=>{try{r.write(m);r.end()}catch{}};
